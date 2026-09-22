@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0c3837" />
+  <title>LifeFlow | Emergency Blood Matching Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { display: ['Georgia', 'serif'], sans: ['Inter', 'ui-sans-serif', 'system-ui'] },
+          colors: { ink: '#102b2b', pine: '#0c3837', mint: '#dcefe7', coral: '#ee5b4f', amber: '#f2b84b', paper: '#f6f7f3' },
+          boxShadow: { soft: '0 18px 50px rgba(12, 56, 55, .10)' }
+        }
+      }
+    };
+  </script>
+  <style>
+    @keyframes pulse-alert { 0%, 100% { box-shadow: 0 0 0 0 rgba(238,91,79,.35); } 50% { box-shadow: 0 0 0 7px rgba(238,91,79,0); } }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .critical-pulse { animation: pulse-alert 1.8s infinite; }
+    .rise { animation: rise .35s ease both; }
+    .focus-ring:focus { outline: 3px solid rgba(242,184,75,.55); outline-offset: 2px; }
+    select, input { color-scheme: light; }
+  </style>
+</head>
+<body class="bg-paper text-ink font-sans antialiased">
+  <header class="bg-pine text-white">
+    <div class="mx-auto max-w-7xl px-5 py-5 lg:px-8">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <a href="#" class="flex items-center gap-3" aria-label="LifeFlow home">
+          <span class="grid h-11 w-11 place-items-center rounded-2xl bg-coral text-xl font-bold shadow-lg">+</span>
+          <span><span class="block font-display text-2xl tracking-tight">LifeFlow</span><span class="text-[10px] uppercase tracking-[.22em] text-mint/80">Emergency blood matching</span></span>
+        </a>
+        <div class="flex flex-wrap gap-2">
+          <button data-open-modal="request-modal" class="focus-ring rounded-full bg-coral px-4 py-2.5 text-sm font-bold transition hover:bg-[#ff7164]">+ Post emergency request</button>
+          <button data-open-modal="donor-modal" class="focus-ring rounded-full border border-mint/40 px-4 py-2.5 text-sm font-bold transition hover:bg-white/10">+ Register as donor</button>
+        </div>
+      </div>
+      <div class="mt-6 flex items-start gap-3 rounded-2xl border border-amber/35 bg-[#154b48] p-4 text-sm leading-relaxed text-mint" role="note">
+        <span class="mt-0.5 text-amber" aria-hidden="true">!</span>
+        <p><strong class="text-white">Voluntary Blood Donation Only.</strong> Organ donation and commercial trade of human biological materials are strictly illegal under national health regulations. All donors undergo mandatory medical screening at the receiving hospital.</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-5 pb-16 lg:px-8">
+    <section class="-mt-5 grid grid-cols-1 overflow-hidden rounded-2xl bg-white shadow-soft sm:grid-cols-3" aria-label="Portal statistics">
+      <div class="border-b border-slate-100 p-5 sm:border-b-0 sm:border-r"><p class="text-xs font-bold uppercase tracking-widest text-slate-500">Active emergencies</p><p id="active-count" class="mt-1 font-display text-4xl text-coral">—</p></div>
+      <div class="border-b border-slate-100 p-5 sm:border-b-0 sm:border-r"><p class="text-xs font-bold uppercase tracking-widest text-slate-500">Available donors</p><p id="donor-count" class="mt-1 font-display text-4xl text-pine">—</p></div>
+      <div class="p-5"><p class="text-xs font-bold uppercase tracking-widest text-slate-500">Fulfilled requests</p><p id="fulfilled-count" class="mt-1 font-display text-4xl text-pine">—</p></div>
+    </section>
+
+    <nav class="mt-10 flex flex-wrap items-center gap-2 border-b border-slate-200" aria-label="Main navigation">
+      <button data-tab="feed" class="tab-btn focus-ring border-b-2 border-coral px-3 py-3 text-sm font-bold text-pine">Live emergency feed</button>
+      <button data-tab="donors" class="tab-btn focus-ring border-b-2 border-transparent px-3 py-3 text-sm font-bold text-slate-500 hover:text-pine">Donor directory & search</button>
+    </nav>
+
+    <section id="feed-view" class="pt-7">
+      <div class="flex flex-wrap items-end justify-between gap-4"><div><p class="text-sm font-bold uppercase tracking-[.18em] text-coral">Right now</p><h1 class="mt-1 font-display text-4xl tracking-tight text-pine">People are waiting for a match.</h1></div><button id="refresh-btn" class="focus-ring rounded-full border border-slate-300 px-4 py-2 text-sm font-bold text-pine hover:bg-white">↻ Refresh feed</button></div>
+      <div class="mt-6 grid grid-cols-1 gap-3 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-3"><label class="text-xs font-bold uppercase tracking-wider text-slate-500">Blood group<select id="request-blood-filter" class="focus-ring mt-1 block w-full rounded-xl border border-slate-200 bg-paper px-3 py-2.5 text-sm font-normal"><option value="">All blood groups</option></select></label><label class="text-xs font-bold uppercase tracking-wider text-slate-500">Status<select id="request-status-filter" class="focus-ring mt-1 block w-full rounded-xl border border-slate-200 bg-paper px-3 py-2.5 text-sm font-normal"><option value="">All statuses</option><option>Open</option><option>Donor In Transit</option><option>Fulfilled</option><option>Cancelled</option></select></label><div class="flex items-end"><span id="feed-summary" class="text-sm text-slate-500"></span></div></div>
+      <div id="request-list" class="mt-5 grid gap-4 lg:grid-cols-2"></div>
+    </section>
+
+    <section id="donors-view" class="hidden pt-7"><div><p class="text-sm font-bold uppercase tracking-[.18em] text-coral">Community network</p><h1 class="mt-1 font-display text-4xl tracking-tight text-pine">A directory built for action.</h1></div><div class="mt-6 grid grid-cols-1 gap-3 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-3"><label class="text-xs font-bold uppercase tracking-wider text-slate-500">Blood group<select id="donor-blood-filter" class="focus-ring mt-1 block w-full rounded-xl border border-slate-200 bg-paper px-3 py-2.5 text-sm font-normal"><option value="">All blood groups</option></select></label><label class="text-xs font-bold uppercase tracking-wider text-slate-500">City or area<input id="donor-city-filter" class="focus-ring mt-1 block w-full rounded-xl border border-slate-200 bg-paper px-3 py-2.5 text-sm font-normal" placeholder="e.g. Indiranagar" /></label><label class="flex items-center gap-3 pb-2 text-sm font-semibold text-pine"><input id="available-filter" type="checkbox" class="h-4 w-4 accent-coral" checked /> Available donors only</label></div><div id="donor-list" class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div></section>
+  </main>
+
+  <div id="toast" class="fixed bottom-5 left-1/2 z-50 hidden -translate-x-1/2 rounded-full bg-pine px-5 py-3 text-sm font-semibold text-white shadow-xl" role="status"></div>
+
+  <div id="request-modal" class="modal fixed inset-0 z-40 hidden overflow-y-auto bg-ink/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="request-title"><div class="mx-auto mt-8 max-w-xl rounded-3xl bg-white p-6 shadow-2xl sm:p-8"><div class="flex items-start justify-between"><div><p class="text-xs font-bold uppercase tracking-widest text-coral">Get help moving</p><h2 id="request-title" class="mt-1 font-display text-3xl text-pine">Post an emergency request</h2></div><button data-close-modal class="focus-ring text-2xl text-slate-400" aria-label="Close">×</button></div><form id="request-form" class="mt-6 grid gap-4 sm:grid-cols-2"><label class="text-sm font-semibold">Patient name<input name="patient_name" required class="form-input" /></label><label class="text-sm font-semibold">Hospital name<input name="hospital_name" required class="form-input" /></label><label class="text-sm font-semibold">City / area<input name="city_area" required class="form-input" /></label><label class="text-sm font-semibold">Blood group<select name="blood_group" required class="form-input blood-options"></select></label><label class="text-sm font-semibold">Units needed<input name="units_needed" type="number" min="1" max="100" value="1" required class="form-input" /></label><label class="text-sm font-semibold">Contact phone<input name="contact_phone" type="tel" required class="form-input" /></label><label class="text-sm font-semibold sm:col-span-2">Urgency level<select name="urgency_level" class="form-input"><option>Critical</option><option selected>Urgent</option><option>Standard</option></select></label><p id="request-error" class="hidden text-sm font-semibold text-coral sm:col-span-2"></p><button class="sm:col-span-2 rounded-xl bg-coral px-4 py-3 font-bold text-white hover:bg-[#d94e43]" type="submit">Publish emergency request</button></form></div></div>
+
+  <div id="donor-modal" class="modal fixed inset-0 z-40 hidden overflow-y-auto bg-ink/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="donor-title"><div class="mx-auto mt-8 max-w-xl rounded-3xl bg-white p-6 shadow-2xl sm:p-8"><div class="flex items-start justify-between"><div><p class="text-xs font-bold uppercase tracking-widest text-coral">Make a difference</p><h2 id="donor-title" class="mt-1 font-display text-3xl text-pine">Register as a donor</h2></div><button data-close-modal class="focus-ring text-2xl text-slate-400" aria-label="Close">×</button></div><form id="donor-form" class="mt-6 grid gap-4 sm:grid-cols-2"><label class="text-sm font-semibold">Full name<input name="name" required class="form-input" /></label><label class="text-sm font-semibold">Blood group<select name="blood_group" required class="form-input blood-options"></select></label><label class="text-sm font-semibold">City / area<input name="city_area" required class="form-input" /></label><label class="text-sm font-semibold">Contact phone<input name="phone" type="tel" required class="form-input" /></label><p id="donor-error" class="hidden text-sm font-semibold text-coral sm:col-span-2"></p><button class="sm:col-span-2 rounded-xl bg-pine px-4 py-3 font-bold text-white hover:bg-[#165250]" type="submit">Join donor directory</button></form></div></div>
+
+  <script>
+    const groups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
+    const $ = (selector) => document.querySelector(selector);
+    const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+    const api = async (url, options = {}) => { const response = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...options }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || 'Something went wrong'); return data; };
+    const showToast = (message) => { const toast = $('#toast'); toast.textContent = message; toast.classList.remove('hidden'); clearTimeout(window.toastTimer); window.toastTimer = setTimeout(() => toast.classList.add('hidden'), 3200); };
+    const openModal = (id) => { const modal = $('#' + id); modal.classList.remove('hidden'); modal.querySelector('input, select').focus(); };
+    const closeModal = (modal) => modal.classList.add('hidden');
+    const groupOptions = (includeAll = false) => `${includeAll ? '<option value="">All blood groups</option>' : ''}${groups.map((group) => `<option value="${group}">${group}</option>`).join('')}`;
+
+    async function loadStats() { const stats = await api('/api/stats'); $('#active-count').textContent = stats.activeRequests; $('#donor-count').textContent = stats.registeredDonors; $('#fulfilled-count').textContent = stats.fulfilledRequests; }
+    function requestCard(request) { const urgencyClass = request.urgency_level === 'Critical' ? 'critical-pulse bg-coral text-white' : request.urgency_level === 'Urgent' ? 'bg-amber text-ink' : 'bg-mint text-pine'; const statusActions = request.status === 'Open' ? `<button data-status="Donor In Transit" data-id="${request.id}" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-pine hover:bg-mint">Mark donor found</button><button data-status="Fulfilled" data-id="${request.id}" class="rounded-lg bg-pine px-3 py-2 text-xs font-bold text-white hover:bg-[#165250]">Mark fulfilled</button>` : request.status === 'Donor In Transit' ? `<button data-status="Fulfilled" data-id="${request.id}" class="rounded-lg bg-pine px-3 py-2 text-xs font-bold text-white hover:bg-[#165250]">Mark fulfilled</button>` : `<span class="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-500">${escapeHtml(request.status)}</span>`; return `<article class="rise rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div class="flex items-start justify-between gap-3"><div><div class="flex flex-wrap items-center gap-2"><span class="rounded-md bg-[#ffe1df] px-2.5 py-1 text-sm font-extrabold text-coral">${escapeHtml(request.blood_group)}</span><span class="rounded-full px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider ${urgencyClass}">${escapeHtml(request.urgency_level)}</span></div><h2 class="mt-4 text-lg font-bold text-pine">${escapeHtml(request.patient_name)}</h2><p class="mt-1 text-sm text-slate-600">${escapeHtml(request.hospital_name)}</p><p class="mt-1 text-sm text-slate-500">⌖ ${escapeHtml(request.city_area)}</p></div><a href="tel:${escapeHtml(request.contact_phone)}" class="focus-ring rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-pine hover:bg-mint" aria-label="Call contact">☎ Call</a></div><div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4"><span class="text-sm font-semibold text-slate-600">${request.units_needed} unit${request.units_needed === 1 ? '' : 's'} needed <span class="mx-1 text-slate-300">·</span> ${new Date(request.created_at + 'Z').toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</span><div class="flex flex-wrap gap-2">${statusActions}</div></div></article>`; }
+    async function loadRequests() { const params = new URLSearchParams(); if ($('#request-blood-filter').value) params.set('blood_group', $('#request-blood-filter').value); if ($('#request-status-filter').value) params.set('status', $('#request-status-filter').value); const requests = await api('/api/requests?' + params); $('#feed-summary').textContent = `${requests.length} request${requests.length === 1 ? '' : 's'} shown`; $('#request-list').innerHTML = requests.length ? requests.map(requestCard).join('') : '<div class="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500 lg:col-span-2">No requests match these filters.</div>'; }
+    function donorCard(donor) { const available = donor.is_available === 1; return `<article class="rise rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div class="flex items-start justify-between gap-3"><div class="flex items-center gap-3"><div class="grid h-11 w-11 place-items-center rounded-xl bg-mint font-display text-xl text-pine">${escapeHtml(donor.name.charAt(0))}</div><div><h2 class="font-bold text-pine">${escapeHtml(donor.name)}</h2><p class="text-sm text-slate-500">⌖ ${escapeHtml(donor.city_area)}</p></div></div><span class="rounded-md bg-[#ffe1df] px-2.5 py-1 text-sm font-extrabold text-coral">${escapeHtml(donor.blood_group)}</span></div><div class="mt-5 flex items-center justify-between border-t border-slate-100 pt-4"><label class="flex cursor-pointer items-center gap-2 text-xs font-bold ${available ? 'text-pine' : 'text-slate-400'}"><input type="checkbox" data-toggle-donor="${donor.id}" ${available ? 'checked' : ''} class="h-4 w-4 accent-coral" /> ${available ? 'Available now' : 'Unavailable'}</label><a href="tel:${escapeHtml(donor.phone)}" class="text-sm font-bold text-coral hover:underline">Contact →</a></div></article>`; }
+    async function loadDonors() { const params = new URLSearchParams(); if ($('#donor-blood-filter').value) params.set('blood_group', $('#donor-blood-filter').value); if ($('#donor-city-filter').value.trim()) params.set('city_area', $('#donor-city-filter').value.trim()); if ($('#available-filter').checked) params.set('available_only', 'true'); const donors = await api('/api/donors?' + params); $('#donor-list').innerHTML = donors.length ? donors.map(donorCard).join('') : '<div class="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500 sm:col-span-2 lg:col-span-3">No donors match these filters.</div>'; }
+
+    async function refreshAll() { try { await Promise.all([loadStats(), loadRequests(), loadDonors()]); } catch (error) { showToast(error.message); } }
+    document.querySelectorAll('.blood-options').forEach((select) => { select.innerHTML = groupOptions(); }); $('#request-blood-filter').innerHTML = groupOptions(true); $('#donor-blood-filter').innerHTML = groupOptions(true);
+    document.querySelectorAll('[data-open-modal]').forEach((button) => button.addEventListener('click', () => openModal(button.dataset.openModal))); document.querySelectorAll('[data-close-modal]').forEach((button) => button.addEventListener('click', () => closeModal(button.closest('.modal')))); document.querySelectorAll('.modal').forEach((modal) => modal.addEventListener('click', (event) => { if (event.target === modal) closeModal(modal); }));
+    document.querySelectorAll('.tab-btn').forEach((button) => button.addEventListener('click', () => { document.querySelectorAll('.tab-btn').forEach((tab) => { tab.classList.toggle('border-coral', tab === button); tab.classList.toggle('text-pine', tab === button); tab.classList.toggle('border-transparent', tab !== button); tab.classList.toggle('text-slate-500', tab !== button); }); $('#feed-view').classList.toggle('hidden', button.dataset.tab !== 'feed'); $('#donors-view').classList.toggle('hidden', button.dataset.tab !== 'donors'); if (button.dataset.tab === 'donors') loadDonors(); }));
+    $('#request-blood-filter').addEventListener('change', loadRequests); $('#request-status-filter').addEventListener('change', loadRequests); $('#donor-blood-filter').addEventListener('change', loadDonors); $('#available-filter').addEventListener('change', loadDonors); $('#donor-city-filter').addEventListener('input', () => { clearTimeout(window.cityTimer); window.cityTimer = setTimeout(loadDonors, 250); }); $('#refresh-btn').addEventListener('click', refreshAll);
+    document.addEventListener('click', async (event) => { const statusButton = event.target.closest('[data-status]'); const donorToggle = event.target.closest('[data-toggle-donor]'); try { if (statusButton) { await api(`/api/requests/${statusButton.dataset.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: statusButton.dataset.status }) }); showToast('Request status updated'); await Promise.all([loadStats(), loadRequests()]); } if (donorToggle) { await api(`/api/donors/${donorToggle.dataset.toggleDonor}/toggle`, { method: 'PATCH' }); showToast('Donor availability updated'); await Promise.all([loadStats(), loadDonors()]); } } catch (error) { showToast(error.message); } });
+    async function submitForm(form, endpoint, errorId, modalId) { const errorBox = $('#' + errorId); errorBox.classList.add('hidden'); const payload = Object.fromEntries(new FormData(form)); try { await api(endpoint, { method: 'POST', body: JSON.stringify(payload) }); form.reset(); closeModal($('#' + modalId)); showToast('Saved successfully'); await refreshAll(); } catch (error) { errorBox.textContent = error.message; errorBox.classList.remove('hidden'); } }
+    $('#request-form').addEventListener('submit', (event) => { event.preventDefault(); submitForm(event.target, '/api/requests', 'request-error', 'request-modal'); }); $('#donor-form').addEventListener('submit', (event) => { event.preventDefault(); submitForm(event.target, '/api/donors', 'donor-error', 'donor-modal'); }); document.addEventListener('keydown', (event) => { if (event.key === 'Escape') document.querySelectorAll('.modal:not(.hidden)').forEach(closeModal); });
+    refreshAll();
+  </script>
+  <style>
+    .form-input { display: block; width: 100%; margin-top: .35rem; border: 1px solid #dce2e1; border-radius: .75rem; background: #f6f7f3; padding: .7rem .8rem; font-weight: 400; }
+    .form-input:focus { outline: 3px solid rgba(242,184,75,.55); outline-offset: 1px; border-color: #f2b84b; }
+  </style>
+</body>
+</html>
